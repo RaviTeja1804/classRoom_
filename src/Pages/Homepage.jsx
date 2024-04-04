@@ -1,20 +1,136 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import './CSS/Homepage.css'
+import personImg from './images/personimg.png'
+import logoutImg from './images/logoutimg.png'
+import homeImg from './images/homeimg.png'
+import classroomImg from './images/classroomimgnew.png'
+import upcomingImg from './images/upcomingnewimg.png'
+import pastImg from './images/pastimg.png'
+import holidayImg from './images/holidaynewimg.png'
 
 function Homepage() {
 
   const [display, setDisplay] = useState('home')
+  const [formDataForBooking, setFormDataForBooking] = useState({
+    date:"",
+    start_time:"",
+    end_time:"",
+    classroom:"",
+    purpose:"",
+    name:"",
+    contact:"",
+    requirement:""
+  })
+
+  const [oneoffive, setoneoffive] = useState('oneoffive1')
+
+  const getCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    let month = today.getMonth() + 1;
+    let day = today.getDate();
+
+    // Add leading zero if month or day is less than 10
+    if (month < 10) {
+        month = `0${month}`;
+    }
+    if (day < 10) {
+        day = `0${day}`;
+    }
+
+    return `${year}-${month}-${day}`;
+  };
+
+
+  const changeHandler3 = (e) => {
+    setFormDataForBooking({...formDataForBooking, [e.target.name]: e.target.value})
+  }
+
+  const formatDate = (dateString) => {
+    const bookingDate = new Date(dateString)
+    return bookingDate.toLocaleDateString('en-GB',{
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric'
+    })
+  }
+
+  const addToBooking = () => {
+      if(localStorage.getItem('auth_token'))
+      {
+        fetch('http://localhost:4000/teacher/addBooking', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/form-data',
+            'auth_token': `${localStorage.getItem('auth_token')}`,
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify(formDataForBooking)
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data)
+          window.alert(data.message)
+        })
+      }
+  }
+  
   let content
-  let classrooms = [
-    {name: "L1", location: "Lecture hall complex", capacity: 120, equipment: ["whiteboard"]},
-    {name: "L2", location: "Lecture hall complex", capacity: 120, equipment: ["whiteboard"]},
-    {name: "5G1", location: "Core 5", capacity: 180, equipment: ["projector", "whiteboard", "Extra board"]},
-    {name: "2101", location: "Core 2", capacity: 80, equipment: ["projector", "whiteboard"]},
-    {name: "2101", location: "Core 2", capacity: 80, equipment: ["projector", "whiteboard"]},
-    {name: "2101", location: "Core 2", capacity: 80, equipment: ["projector", "whiteboard"]},
-    {name: "2101", location: "Core 2", capacity: 80, equipment: ["projector", "whiteboard"]},
-    {name: "2101", location: "Core 2", capacity: 80, equipment: ["projector", "whiteboard"]}
-  ]
+
+  useEffect(() => {
+    getClassrooms();
+    getBookings();
+  }, []);
+
+  const [allClassroomsData, setAllClassroomsData] = useState([]);
+  useEffect(() => {
+    if (display === 'home') {
+        getClassrooms()
+    }
+  }, [display]);
+
+  const [allBookingsData, setAllBookingsData] = useState([]);
+  useEffect(() => {
+    if (display === 'upcoming' || display === 'old') {
+        getBookings()
+    }
+  }, [display]);
+
+  const getClassrooms = () => {
+    if(localStorage.getItem('auth_token'))
+      {
+        fetch('http://localhost:4000/getClassRooms', {
+          method: 'GET',
+          headers: {
+            'Content-type': 'application/json'
+          }
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          setAllClassroomsData(data)
+        })
+      }
+  }
+
+  const getBookings = async () => {
+    if(localStorage.getItem('auth_token'))
+      {
+        const loggedInTeacherEmail = (JSON.parse(localStorage.getItem('loggedInTeacherData'))).email;
+        await fetch(`http://localhost:4000/teacher/getTeacherByemail/${loggedInTeacherEmail}`, {
+          method: 'GET',
+          headers: {
+            'auth_token': `${localStorage.getItem('auth_token')}`
+          }
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data.allBookings)
+          setAllBookingsData(data.allBookings)
+        })
+      }
+  }
+  
+
   const holidays = [
     {name: "Republic Day", date: "January 26", day: "Friday"},
     {name: "Holi",date: "March 25",day: "Monday"},
@@ -37,18 +153,25 @@ function Homepage() {
 
   if(display==='home')
   {
-    content = (
-      <div className="home-content">
-        {classrooms.map((classroom, index) => {
-          return <div key={index} className="classroom-card">
-                    <h1>{classroom.name}</h1>
-                    <p><strong>Location:</strong> {classroom.location}</p>
-                    <p><strong>Capacity:</strong> {classroom.capacity}</p>
-                    <p><strong>Equipment:</strong> {classroom.equipment.join(", ")}</p>
-                  </div>
-        })}
-      </div>
-    )
+    if(allClassroomsData.length>0)
+    {
+      content = (
+        <div className="home-content">
+          {allClassroomsData.map((classroom, index) => {
+            return <div key={index} className="classroom-card">
+                      <h1>{classroom.name}</h1>
+                      <p><strong>Location:</strong> {classroom.location}</p>
+                      <p><strong>Capacity:</strong> {classroom.capacity}</p>
+                      <p><strong>Equipment:</strong> {classroom.equipment.join(", ")}</p>
+                    </div>
+          })}
+        </div>
+      )
+    }
+    else
+    {
+        content = (<h3>Loading</h3>)
+    }
   }
   else if(display==='booknow')
   {
@@ -56,45 +179,45 @@ function Homepage() {
         <form className='booknow-content'>
           <div className="eachdetail">
             <label htmlFor="date">Date :</label>
-            <input type="date" id="date" name="date" required />
+            <input type="date" id="date" name="date" value={formDataForBooking.date} min={getCurrentDate()}  onChange={changeHandler3} required />
           </div>
           
           <div className="eachdetail">
             <label htmlFor="startTime">Start Time :</label>
-            <input type="time" id="startTime" name="startTime" required />
+            <input type="time" id="startTime" value={formDataForBooking.start_time} onChange={changeHandler3} name="start_time" required />
           </div>
 
           <div className="eachdetail">
             <label htmlFor="endTime">End Time :</label>
-            <input type="time" id="endTime" name="endTime" required />
+            <input type="time" id="endTime" value={formDataForBooking.end_time} onChange={changeHandler3} name="end_time" required />
           </div>
 
           <div className="eachdetail">
             <label htmlFor="classroom">Select Classroom :</label>
-            <input type="text" id="classroom" name="classroom" required />
+            <input type="text" id="classroom" value={formDataForBooking.classroom} onChange={changeHandler3} name="classroom" required />
           </div>
 
           <div className="eachdetail">
             <label htmlFor="purpose">Purpose :</label>
-            <input type="text" id="purpose" name="purpose" required />
+            <input type="text" id="purpose" name="purpose"  value={formDataForBooking.purpose} onChange={changeHandler3} required />
           </div>
 
           <div className="eachdetail">
             <label htmlFor="name">Your Name :</label>
-            <input type="text" id="name" name="name" required />
+            <input type="text" id="name" name="name"  value={formDataForBooking.name} onChange={changeHandler3} required />
           </div>
 
           <div className="eachdetail">
             <label htmlFor="phone">Your Phone :</label>
-            <input type="tel" id="phone" name="phone" required />
+            <input type="tel" id="contact" name="contact" value={formDataForBooking.contact} onChange={changeHandler3} required />
           </div>
 
           <div className="eachdetail">
             <label htmlFor="specialRequirements">Special Requirements :</label>
-            <textarea id="specialRequirements" name="specialRequirements"></textarea>
+            <textarea id="requirement"  value={formDataForBooking.requirement} onChange={changeHandler3} name="requirement"></textarea>
           </div>
 
-          <button type="submit" className='bookclass'>Book Now</button>
+          <button type="submit" className='bookclass' onClick={() => addToBooking()}>Book Now</button>
         </form>
     )
   }
@@ -112,24 +235,111 @@ function Homepage() {
       </div>
     )
   }
+  else if(display==='upcoming')
+  {
+    const today = new Date();
+    const upcomingBookings = allBookingsData.filter(booking => {
+      const bookingDate = new Date(booking.date);
+      return bookingDate >= today;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    if(allBookingsData.length>0)
+    {
+      content = (
+        <div className="upcoming-content">
+          {upcomingBookings.map((booking, index) => {
+            return <div key={index} className='upcoming-card'>
+                      <h3 className='booking-heading'>Booking #{index + 1}</h3>
+                      <p className='booking-inside'><strong>Date : </strong> {formatDate(booking.date)}</p>
+                      <p className='booking-inside'><strong>Start Time : </strong> {booking.start_time}</p>
+                      <p className='booking-inside'><strong>End Time : </strong> {booking.end_time}</p>
+                      <p className='booking-inside'><strong>Classroom : </strong> {booking.classroom}</p>
+                      <p className='booking-inside'><strong>Purpose : </strong> {booking.purpose}</p>
+                    </div>
+          })}
+        </div>
+      )
+    }
+    else
+    {
+      content = (<h3>Loading</h3>)
+    }
+  }
+  else
+  {
+    const today = new Date();
+    const oldBookings = allBookingsData.filter(booking => {
+      const bookingDate = new Date(booking.date);
+      return bookingDate < today;
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+    if(allBookingsData.length>0)
+    {
+      content = (
+        <div className="upcoming-content">
+          {oldBookings.map((booking, index) => {
+            return <div key={index} className='upcoming-card'>
+                      <h3 className='booking-heading'>Booking #{index + 1}</h3>
+                      <p className='booking-inside'><strong>Date : </strong> {formatDate(booking.date)}</p>
+                      <p className='booking-inside'><strong>Start Time : </strong> {booking.start_time}</p>
+                      <p className='booking-inside'><strong>End Time : </strong> {booking.end_time}</p>
+                      <p className='booking-inside'><strong>Classroom : </strong> {booking.classroom}</p>
+                      <p className='booking-inside'><strong>Purpose : </strong> {booking.purpose}</p>
+                    </div>
+          })}
+        </div>
+      )
+    }
+    else
+    {
+      content = (<h3>Loading</h3>)
+    }
+    
+  }
 
   return (
     <div className='homepage'>
       <div className='navbar-home'>
           <p className='name'>Classroom Booking System</p>
-          <p className='hello'>Hello, Ravi Teja</p>
-          <button className='logout-btn'>Logout</button>
+          <div className='helloimg'>
+            <img src={personImg} className='helloimage' alt="" />
+            <div className='hello'>Hello, {JSON.parse(localStorage.getItem('loggedInTeacherData')).fullName}</div>
+          </div>
+          
+          <div className='logoutimg'>
+            <img src={logoutImg} className='helloimage' onClick={() => {localStorage.removeItem('auth_token');window.location.replace('/')}} alt="" />
+            <button className='logout-btn' onClick={() => {localStorage.removeItem('auth_token');window.location.replace('/')}}>Logout</button>
+          </div>
       </div>
 
       <div className="listing">
-        <button className="home" onClick={() => setDisplay('home')}>Home</button>
-        <button className="booknow" onClick={() => setDisplay('booknow')}>Book a Classroom</button>
-        <button className="upcoming" onClick={() => setDisplay('upcoming')}>Upcoming bookings</button>
-        <button className="old" onClick={() => setDisplay('old')}>Old bookings</button>
-        <button className="holiday" onClick={() => setDisplay('holiday')}>Public holidays</button>
+        <div className='navbarimg'>
+          <img src={homeImg} className='listimg' onClick={() => {setDisplay('home');setoneoffive('oneoffive1')}} alt="" />
+          <button className="home" onClick={() => {setDisplay('home');setoneoffive('oneoffive1')}}>Home</button>
+        </div>
+
+        <div className='navbarimg'>
+          <img src={classroomImg} className='listimg' onClick={() => {setDisplay('booknow');setoneoffive('oneoffive2')}} alt="" />
+          <button className="booknow" onClick={() => {setDisplay('booknow');setoneoffive('oneoffive2')}}>Book a Classroom</button>
+        </div>
+
+        <div className='navbarimg'>
+          <img src={upcomingImg} className='listimg' onClick={() => {setDisplay('upcoming');setoneoffive('oneoffive3');getBookings()}} alt="" />
+          <button className="upcoming" onClick={() => {setDisplay('upcoming');setoneoffive('oneoffive3');getBookings()}}>Upcoming bookings</button>
+        </div>
+
+        <div className='navbarimg'>
+          <img src={pastImg} className='listimg' onClick={() => {setDisplay('old');setoneoffive('oneoffive4');getBookings()}} alt="" />
+          <button className="old" onClick={() => {setDisplay('old');setoneoffive('oneoffive4');getBookings()}}>Old bookings</button>
+        </div>
+
+        <div className='navbarimg'>
+          <img src={holidayImg} className='listimg' onClick={() => {setDisplay('holiday');setoneoffive('oneoffive5')}} alt="" />
+          <button className="holiday" onClick={() => {setDisplay('holiday');setoneoffive('oneoffive5')}}>Public holidays</button>
+        </div>
       </div>
 
-      <div className="oneoffive">
+      <div className={oneoffive}>
         {display==='home'?<div className="allrooms">All Rooms</div>:<></>}
         {display==='booknow'?<div className="allrooms">Enter the details</div>:<></>}
         {content}

@@ -30,7 +30,8 @@ body {
     color: white;
     margin-right: 30px;
     height: 45px;
-    width: 120px;
+    width: 140px;
+    margin-left: 10px;
     font-weight: 600;
     font-size: 20px;
     cursor: pointer;
@@ -83,6 +84,10 @@ body {
     background-color: rgb(201, 0, 0);
     color: white;
     cursor: pointer;
+}
+
+.register-btn:hover {
+    background-color: rgb(179, 0, 0);
 }
 
 .log {
@@ -150,4 +155,18 @@ hr {
 
 .now {
     height: 55%;
+}
+
+.loginimgdiv {
+    display: flex;
+    align-items: center;
+    z-index: 0;
+}
+
+.loginimg {
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    margin-right: -45px;
+    z-index: 1;
 }
